@@ -1,0 +1,41 @@
+name: Docker Image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build-login-push-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+     - uses: actions/checkout@v2
+     - 
+       name: 1 Build the Docker image
+       run: docker build . --file Dockerfile --tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+     - 
+       name: 2 Docker Login (JFrog repo)
+       uses: docker/login-action@v1
+       with:
+          registry: ${{ secrets.PYPI_HOST }}
+          username: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
+     - 
+         name: 3 Push the image (JFrog repo)
+         run: docker push ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+     -
+         name: 4 Do a test container run
+         run: docker run --name python-wallet-api ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest & 
+     -    
+         name: 5 Do docker ps
+         run: docker ps
+     -    
+         name: 6 Stop the container 
+         run: docker stop python-wallet-api
+         
+         
+  

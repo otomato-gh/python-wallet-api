@@ -17,5 +17,7 @@ RUN rm /home/appuser/requirements.txt
 ENV PATH="/home/appuser/.local/bin:${PATH}"
 COPY api.py /home/appuser/
 
+EXPOSE 5000
+
 CMD [ "python", "./api.py" ]
 

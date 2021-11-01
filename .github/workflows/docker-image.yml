@@ -59,7 +59,7 @@ jobs:
           ls .
           kubectl apply -f ./deployment.yml
           kubectl get pods
-          while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done
+          while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod ..." && sleep 2 && kubectl describe pod wallet-api; done
         
       # kubectl get pod -l app=wallet-api -ojson | jq .status.phase 
 

@@ -37,22 +37,6 @@ jobs:
          name: 6 Stop the container 
          run: docker stop python-wallet-api
          
-  # kind-create-kind-cluster:
-  #
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - uses: engineerd/setup-kind@v0.5.0
-  #    - name: Testing the cluster
-  #      run: |
-  #        kubectl cluster-info
-  #        kubectl get pods -n kube-system
-  #        echo "current-context:" $(kubectl config current-context)
-  #        echo "environment-kubeconfig:" ${KUBECONFIG}
-  #    - name: Deploy app & service to kinD
-  #      run: |
-  #        kubectl apply -f $HOME/deployment.yml
-  #        kubectl get pod -l app=wallet-api-ojson | jq .status.phase 
   
   k3s-create-cluster-then-deploy-app:
 
@@ -75,8 +59,9 @@ jobs:
           ls .
           kubectl apply -f ./deployment.yml
           kubectl get pods
-          echo "Waiting for pods... 1 min..." && sleep 60
-          kubectl get pod -l app=wallet-api -ojson | jq .status.phase 
+          while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done
+        
+      # kubectl get pod -l app=wallet-api -ojson | jq .status.phase 
 
 
 

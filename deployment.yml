@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 - name: wallet-api
-                  imagePullPolicy: Never
+                  imagePullPolicy: IfNotPresent
                   image: local/python-wappet-api:latest
                   resources:
                       limits:

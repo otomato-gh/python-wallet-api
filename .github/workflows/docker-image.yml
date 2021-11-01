@@ -57,11 +57,18 @@ jobs:
        name: Deploy app & service to k3d
        run: |
           ls .
-          kubectl create secret docker-registry regcred --docker-server=${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD }}
+          docker login -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} ${{ secrets.PYPI_HOST }}
+          docker pull ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest 
+          docker image tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest python-wallet-api:k3d
+          docker images
+          docker save -o /tmp/python-wallet-api.tar python-wallet-api:k3d
+          k3d image import /tmp/python-wallet-api.tar
           kubectl apply -f ./deployment.yml
           kubectl get pods
           while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod ..." && sleep 15 && kubectl describe pod wallet-api; done
-        
+
+      # just for memo: 
+      # nothing to do with this if k3s! # kubectl create secret docker-registry regcred --docker-server=${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD }}
       # kubectl get pod -l app=wallet-api -ojson | jq .status.phase 
 
 

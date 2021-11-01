@@ -14,10 +14,10 @@ spec:
         spec:
             containers:
                 - name: wallet-api
-                  imagePullPolicy: IfNotPresent
-                  image: playtikatraining.jfrog.io/default-docker-local/local/python-wappet-api:latest
-                  imagePullSecrets:
-                  - name: regcred
+                  imagePullPolicy: Never
+                  image: python-wallet-api:k3d
+           #       imagePullSecrets:   # not implemented in k3s!
+           #       - name: regcred
                   resources:
                       limits:
                           cpu: 50m

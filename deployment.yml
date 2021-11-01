@@ -15,7 +15,7 @@ spec:
             containers:
                 - name: wallet-api
                   imagePullPolicy: IfNotPresent
-                  image: local/python-wappet-api:latest
+                  image: playtikatraining.jfrog.io/default-docker-local/local/python-wappet-api:latest
                   resources:
                       limits:
                           cpu: 50m

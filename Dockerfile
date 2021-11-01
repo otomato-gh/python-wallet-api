@@ -16,10 +16,10 @@ COPY --from=intermediate /usr/local/lib/python3.8/site-packages /usr/local/lib/p
 WORKDIR /home/appuser
 USER appuser
 COPY --chown=appuser:appuser requirements.txt requirements.txt
-RUN python -m pip install --upgrade pip
-RUN pip install myWallet==0.2
-RUN pip install --user -r requirements.txt
-RUN rm /home/appuser/requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install myWallet==0.2  && \
+    pip install --user -r requirements.txt  && \
+    rm /home/appuser/requirements.txt
 ENV PATH="/home/appuser/.local/bin:${PATH}"
 COPY api.py /home/appuser/
 

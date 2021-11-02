@@ -1,0 +1,63 @@
+name: Docker Image to EKS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-login-push-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: 1 Build the Docker image (2 stages)
+      run: docker build . --build-arg PYPI_INDEX_URL=${{ secrets.PYPI_INDEX_URL }} --file Dockerfile --tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+    - name: 2 Docker Login (JFrog repo)
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ secrets.PYPI_HOST }}
+        username: ${{ secrets.PYPI_USERNAME }}
+        password: ${{ secrets.PYPI_PASSWORD }}
+    - name: 3 Push the image (JFrog repo)
+      run: docker push ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+    - name: 4 Do a test container run
+      run: docker run --name python-wallet-api ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest &
+    - name: 5 Do docker ps
+      run: docker ps
+    - name: 6 Stop the container
+      run: docker stop python-wallet-api
+
+  eks-deploy:
+    
+    runs-on: ubuntu-latest
+
+    steps:
+     - uses: actions/checkout@v2
+     - name: 0 Prepare awscli
+       run: |
+          python -m pip install --upgrade pip
+          pip install awscli
+     - name: 1 Run aws configure
+       run: | 
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} 
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ secrets.AWS_REGION }}
+     - uses: actions/checkout@v2
+     - name: 2 Set up cluster, then deploy app & service to EKS
+       run: | 
+          aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name test
+          kubectl cluster-info
+          kubectl get nodes
+          kubectl get pods
+          kubectl create secret docker-registry artifactory --docker-server=https://${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD}}
+          kubectl apply -f ./deployment-eks.yml
+          kubectl get pods
+          while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod ..." && sleep 15 && kubectl describe pod wallet-api; done
+
+    # just for memo:
+    # put a secret creation command before apply -f if the secret is not exist in a fresh new cluster!
+    # kubectl create secret docker-registry artifactory --docker-server=https://${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD}}
+ 
+    # kubectl get pod -l app=wallet-api -ojson | jq .status.phase

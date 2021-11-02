@@ -16,8 +16,6 @@ spec:
                 - name: wallet-api
                   imagePullPolicy: Never
                   image: python-wallet-api:k3d
-           #       imagePullSecrets:   # not implemented in k3s!
-           #       - name: regcred
                   resources:
                       limits:
                           cpu: 50m
@@ -35,7 +33,7 @@ metadata:
 spec:
     type: NodePort
     selector:
-        app: example
+        app: wallet-api
     ports:
         - port: 5080
           targetPort: 5080

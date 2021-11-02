@@ -4,7 +4,7 @@ metadata:
   name: wallet-api
 spec:
   containers:
-  - name: wallet-api-container
+  - name: wallet-api
     image: playtikatraining.jfrog.io/artifactory/default-docker-local/python-wallet-api:latest
     resources:
         limits:

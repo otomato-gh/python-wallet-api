@@ -12,6 +12,8 @@ spec:
             labels:
                 app: wallet-api
         spec:
+            imagePullSecrets:
+            - name:  privreg
             containers:
                 - name: wallet-api
                   imagePullPolicy: Always
@@ -25,8 +27,7 @@ spec:
                           memory: 10Mi
                   ports:
                       - containerPort: 5080
-            imagePullSecrets:
-              - name:  privreg
+
 
 ---
 apiVersion: v1

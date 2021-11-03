@@ -31,6 +31,9 @@ jobs:
 
   eks-deploy:
     
+    needs: [build-login-push-test]
+    if: always()
+    
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +54,6 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
           kubectl get pods
-          kubectl create secret docker-registry artifactory --docker-server=https://${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD}}
           kubectl apply -f ./deployment-eks.yml
           kubectl get pods
           while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod ..." && sleep 15 && kubectl describe pod wallet-api; done

@@ -17,7 +17,7 @@ spec:
             containers:
                 - name: wallet-api
                   imagePullPolicy: Always
-                  image: playtikatraining.jfrog.io/artifactory/default-docker-local/python-wallet-api:latest
+                  image: playtikatraining.jfrog.io/default-docker-local/python-wallet-api:latest
                   resources:
                       limits:
                           cpu: 50m

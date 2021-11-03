@@ -13,7 +13,7 @@ spec:
                 app: wallet-api
         spec:
             imagePullSecrets:
-            - name:  privreg
+            - name:  artifactory
             containers:
                 - name: wallet-api
                   imagePullPolicy: Always

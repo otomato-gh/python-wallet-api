@@ -1,38 +1,87 @@
-name: Docker Image to EKS
+name: Docker Image to k3s (test), then to EKS (prod)
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  build-login-push-test:
+
+ build-login-push-test:
+
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: 1 Build the Docker image (2 stages)
-      run: docker build . --build-arg PYPI_INDEX_URL=${{ secrets.PYPI_INDEX_URL }} --file Dockerfile --tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
-    - name: 2 Docker Login (JFrog repo)
-      uses: docker/login-action@v1
-      with:
-        registry: ${{ secrets.PYPI_HOST }}
-        username: ${{ secrets.PYPI_USERNAME }}
-        password: ${{ secrets.PYPI_PASSWORD }}
-    - name: 3 Push the image (JFrog repo)
-      run: docker push ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
-    - name: 4 Do a test container run
-      run: docker run --name python-wallet-api ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest &
-    - name: 5 Do docker ps
-      run: docker ps
-    - name: 6 Stop the container
-      run: docker stop python-wallet-api
+     - uses: actions/checkout@v2
+     - 
+       name: 1 Build the Docker image (2 stages)
+       run: docker build . --build-arg PYPI_INDEX_URL=${{ secrets.PYPI_INDEX_URL }} --file Dockerfile --tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+     - 
+       name: 2 Docker Login (JFrog repo)
+       uses: docker/login-action@v1
+       with:
+          registry: ${{ secrets.PYPI_HOST }}
+          username: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
+     - 
+         name: 3 Push the image (JFrog repo)
+         run: docker push ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest
+     -
+         name: 4 Do a test container run
+         run: docker run --name python-wallet-api ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest & 
+     -    
+         name: 5 Do docker ps
+         run: docker ps
+     -    
+         name: 6 Stop the container 
+         run: docker stop python-wallet-api        
 
-  eks-deploy:
+ k3s:
+
+     needs: [build-login-push-test]
+     if: always()
+
+     runs-on: ubuntu-latest
+
+     steps:
+     - uses: actions/checkout@v2
+       with:
+          token: ${{ secrets.PUBLIC_REPOS_TOKEN }}
+     - uses: nolar/setup-k3d-k3s@v1
+     - 
+      name: Get k3s cluster info
+      run: |
+         kubectl cluster-info
+         kubectl get pods -n kube-system
+         kubectl get nodes
+         echo "current-context:" $(kubectl config current-context)
+         echo "environment-kubeconfig:" ${KUBECONFIG}
+     - 
+      name: Deploy app & service to k3s
+      id: k3s-deploy
+      run: |
+         ls .
+         docker login -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} ${{ secrets.PYPI_HOST }}
+         docker pull ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest 
+         docker image tag ${{ secrets.PYPI_HOST }}/default-docker-local/python-wallet-api:latest python-wallet-api:k3s
+         docker images
+         docker save -o /tmp/python-wallet-api.tar python-wallet-api:k3s
+         k3d image import /tmp/python-wallet-api.tar
+         kubectl apply -f ./deployment.yml
+         kubectl get pods
+         while [[ $(kubectl get pods -l app=wallet-api -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod ..." && sleep 15 && kubectl describe pod wallet-api; done
+     -
+      name: Check step status
+      if: steps.k3s-deploy.outcome == 'failure'
+      run: exit 1
+
+
+
+ eks:
     
-    needs: [build-login-push-test]
-    if: always()
+    needs: [k3s]
+    if: ${{ (needs.k3s.result == 'success') && always() }}
     
     runs-on: ubuntu-latest
 
@@ -61,5 +110,8 @@ jobs:
     # just for memo:
     # put a secret creation command before apply -f if the secret is not exist in a fresh new cluster!
     # kubectl create secret docker-registry artifactory --docker-server=https://${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD}}
- 
+    
+    # for EKS: 
+    # nothing to do with this if k3s! # kubectl create secret docker-registry regcred --docker-server=${{ secrets.PYPI_HOST }} --docker-username=${{ secrets.PYPI_USERNAME }} --docker-password=${{ secrets.PYPI_PASSWORD }}
+  
     # kubectl get pod -l app=wallet-api -ojson | jq .status.phase

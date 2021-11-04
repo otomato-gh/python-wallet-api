@@ -15,7 +15,7 @@ spec:
             containers:
                 - name: wallet-api
                   imagePullPolicy: Never
-                  image: python-wallet-api:k3d
+                  image: python-wallet-api:k3s
                   resources:
                       limits:
                           cpu: 50m
